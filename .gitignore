@@ -1,0 +1,4 @@
+*.pyc
+ocra-data.conf.yaml
+env/
+*.json

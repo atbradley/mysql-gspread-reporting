@@ -1,0 +1,8 @@
+database:
+    host: localhost
+    db: dbname
+    port: 3306
+    user: dbuser
+    passwd: mydbpassword
+apikeyfile: map-key-file-name.json
+folder: google-drive-folder-id
