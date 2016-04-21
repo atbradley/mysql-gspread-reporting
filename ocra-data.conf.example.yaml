@@ -4,5 +4,6 @@ database:
     port: 3306
     user: dbuser
     passwd: mydbpassword
+report_table_name: reports
 apikeyfile: map-key-file-name.json
 folder: google-drive-folder-id

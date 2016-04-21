@@ -19,7 +19,7 @@ dbs = settings['database']
 #db = _mysql.connect(host=dbs['host'], port=dbs['port'], user=dbs['user'], passwd=dbs['passwd'], db=dbs['db'])
 db = _mysql.connect(**dbs)
 
-qry = 'SELECT * FROM reports ORDER BY run_order'
+qry = 'SELECT * FROM {} ORDER BY run_order'.format(settings['report_table_name'])
 
 db.query(qry)
 r = db.store_result()
