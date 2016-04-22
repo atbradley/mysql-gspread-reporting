@@ -1,12 +1,19 @@
+import os.path
 from oauth2client.service_account import ServiceAccountCredentials
 from apiclient.discovery import build
 import httplib2
 import gspread
+import yaml
+
+here = os.path.dirname(os.path.realpath(__file__))
+settings_file = os.path.join(here, 'ocra-data.conf.yaml')
+with open(settings_file, 'r') as f:
+    settings = yaml.load(f)
 
 scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
 credentials = ServiceAccountCredentials.from_json_keyfile_name(
-    'Library Info-Maps-920ffb132665.json', scopes=scopes)
+    settings['apikeyfile'], scopes=scopes)
     
 service = build('drive', 'v3')
 http = credentials.authorize(httplib2.Http())
