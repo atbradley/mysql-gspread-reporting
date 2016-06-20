@@ -16,6 +16,7 @@ This was written for Brown University's [Online Course Reserves Application](htt
     		PRIMARY KEY (`name`),  
     		UNIQUE INDEX `order` (`run_order`)  
     	);
+
 3. Copy the file `ocra-data.conf.example.yaml` to `ocra-data.conf.yaml` and update with your database credentials, the name of your "reports" table, the ID of the new folder you created (you can copy this from the folder's URL), and the path to the service account credentials .json file.
 4. Add your reports to your `reports` table. `runorder` determines the order of reports in the output spreadsheet; `name` determines the name of the sheet and will appear, along with `description` on the first page of the file as a table of contents. The `query` is simply an SQL statement that returns the data you want to save to the spreadsheet.
 5. `pip install -r requirements.txt`
