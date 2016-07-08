@@ -4,6 +4,8 @@ from apiclient.discovery import build
 import httplib2
 import gspread
 import yaml
+from time import sleep
+import sys
 
 here = os.path.dirname(os.path.realpath(__file__))
 settings_file = os.path.join(here, 'ocra-data.conf.yaml')
@@ -40,6 +42,7 @@ def create_spreadsheet(name, folder):
     return wkbid
 
 def data_to_worksheet(spreadsheet_id, name, description, headers, data):
+    global service, http, gc
     wkb = gc.open_by_key(spreadsheet_id)
     if not data:
         #Maybe write something to the spreadsheet indicating no data.
@@ -49,12 +52,35 @@ def data_to_worksheet(spreadsheet_id, name, description, headers, data):
     wksindex.append_row((name, description))
     
     wks = wkb.add_worksheet(name, 1, len(headers))
+
     for hc in range(len(headers)): 
         wks.update_cell(1, hc+1, headers[hc])
         
+    print(str(len(data)))    
+    
     for row in data:
         vals = [z.decode() if type(z)==bytes else '' if z==None else z for z in row]
-        wks.append_row(vals)
+        print("Appending row: "+str(vals))
+        try:
+            wks.append_row(vals)
+        except gspread.exceptions.HTTPError as ex:
+            #TODO: Real logging
+            print("HTTP Error. Trying to reauthenticate.")
+            print(str(ex))
+            
+            #Pause a few seconds, reauthenticate and try again. Go ahead and crash if we fail again.
+            sleep(30)
+            service = build('drive', 'v3')
+            http = credentials.authorize(httplib2.Http())
+            gc = gspread.authorize(credentials)
+            
+            print("Reauthenticated. Trying to open spreadsheet.")
+            wkb = gc.open_by_key(spreadsheet_id)
+            wks = wkb.worksheet(name)
+            print("adding values.")
+
+            wks.append_row(vals)
+        sys.stdout.flush()
         
 def delete_worksheet(spreadsheet_id, sheet_index=0):
     gc = gspread.authorize(credentials)
