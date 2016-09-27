@@ -1,0 +1,2 @@
+source /home/ab24/ocra-google-reporting/env/bin/activate
+python /home/ab24/ocra-google-reporting/ocra-reporting.py
