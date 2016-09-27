@@ -56,17 +56,17 @@ def data_to_worksheet(spreadsheet_id, name, description, headers, data):
     for hc in range(len(headers)): 
         wks.update_cell(1, hc+1, headers[hc])
         
-    print(str(len(data)))    
+    #print(str(len(data)))    
     
     for row in data:
         vals = [z.decode() if type(z)==bytes else '' if z==None else z for z in row]
-        print("Appending row: "+str(vals))
+        #print("Appending row: "+str(vals))
         try:
             wks.append_row(vals)
         except gspread.exceptions.HTTPError as ex:
             #TODO: Real logging
-            print("HTTP Error. Trying to reauthenticate.")
-            print(str(ex))
+            #print("HTTP Error. Trying to reauthenticate.")
+            #print(str(ex))
             
             #Pause a few seconds, reauthenticate and try again. Go ahead and crash if we fail again.
             sleep(30)
@@ -74,10 +74,10 @@ def data_to_worksheet(spreadsheet_id, name, description, headers, data):
             http = credentials.authorize(httplib2.Http())
             gc = gspread.authorize(credentials)
             
-            print("Reauthenticated. Trying to open spreadsheet.")
+            #print("Reauthenticated. Trying to open spreadsheet.")
             wkb = gc.open_by_key(spreadsheet_id)
             wks = wkb.worksheet(name)
-            print("adding values.")
+            #print("adding values.")
 
             wks.append_row(vals)
         sys.stdout.flush()
