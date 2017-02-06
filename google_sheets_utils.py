@@ -7,22 +7,31 @@ import yaml
 from time import sleep
 import sys
 
+import io
+from os import SEEK_SET, SEEK_CUR, SEEK_END
+import csv
+
+#TODO: Make this a class.
+
 here = os.path.dirname(os.path.realpath(__file__))
 settings_file = os.path.join(here, 'ocra-data.conf.yaml')
 with open(settings_file, 'r') as f:
     settings = yaml.load(f)
 
 scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-
 credentials = ServiceAccountCredentials.from_json_keyfile_name(
     settings['apikeyfile'], scopes=scopes)
-    
+
 service = build('drive', 'v3')
 http = credentials.authorize(httplib2.Http())
 gc = gspread.authorize(credentials)
 
-# maybe create a folder and upload CSVs as individual spreadsheet files.
-# Folders are mimeType application/vnd.google-apps.folder.
+discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?'
+            'version=v4')
+sheetsClient = build('sheets', 'v4', http=http,
+                        discoveryServiceUrl=discoveryUrl)
+
+toc = [['Sheet Name', 'Description']] 
 
 def create_spreadsheet(name, folder):
     body = {
@@ -32,71 +41,114 @@ def create_spreadsheet(name, folder):
     }
     file = service.files().create(body=body).execute(http=http)
     wkbid = file.get('id')
-    
     wks = gc.open_by_key(wkbid).add_worksheet('Index', 1, 2)
-    wks.update_cell(1,1, 'Sheet Name')
-    wks.update_cell(1,2, 'Description')
-    
     delete_worksheet(wkbid, 0)
 
     return wkbid
 
+def create_toc(spreadsheet_id):
+    global sheetsClient, toc
+
+    wkb = sheetsClient.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    sheetid = wkb['sheets'][0]['properties']['sheetId']
+    
+    csvdata = io.StringIO()
+    cw = csv.writer(csvdata)
+    cw.writerows(toc)
+    
+    body = {'requests': [
+        {
+            'pasteData': { 
+                    'coordinate': {
+                        'sheetId': sheetid,
+                        'rowIndex': 0,
+                        'columnIndex': 0,
+                    },
+                    'data': csvdata.getvalue(),
+                    'type': 'PASTE_VALUES',
+                    'delimiter': ',',
+            }
+        }
+    ]}
+    rsp = sheetsClient.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
+
+
 def data_to_worksheet(spreadsheet_id, name, description, headers, data):
-    global service, http, gc
+    global service, http, gc, toc
     wkb = gc.open_by_key(spreadsheet_id)
     if not data:
         #Maybe write something to the spreadsheet indicating no data.
         return 0
     
-    wksindex = wkb.sheet1
-    wksindex.append_row((name, description))
-    
-    wks = wkb.add_worksheet(name, 1, len(headers))
+    body = {'requests': [
+        {
+            'addSheet': {
+                'properties': { 
+                    'title': name,
+                    'gridProperties': {
+                        'rowCount': 2,
+                        'columnCount': len(headers),
+                        'frozenRowCount': 1
+                    },
+                },
+            }
+        }
+    ]}
+    rsp = sheetsClient.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
+    sheetid = rsp['replies'][0]['addSheet']['properties']['sheetId']
 
-    for hc in range(len(headers)): 
-        wks.update_cell(1, hc+1, headers[hc])
         
-    print(str(len(data)))    
+    csvdata = io.StringIO()
+    cw = csv.writer(csvdata)
+    cw.writerow(headers)
     
     for row in data:
         vals = [z.decode() if type(z)==bytes else '' if z==None else z for z in row]
-        print("Appending row: "+str(vals))
-        try:
-            wks.append_row(vals)
-        except gspread.exceptions.HTTPError as ex:
-            #TODO: Real logging
-            print("HTTP Error. Trying to reauthenticate.")
-            print(str(ex))
-            
-            #Pause a few seconds, reauthenticate and try again. Go ahead and crash if we fail again.
-            sleep(30)
-            service = build('drive', 'v3')
-            http = credentials.authorize(httplib2.Http())
-            gc = gspread.authorize(credentials)
-            
-            print("Reauthenticated. Trying to open spreadsheet.")
-            wkb = gc.open_by_key(spreadsheet_id)
-            wks = wkb.worksheet(name)
-            print("adding values.")
+        cw.writerow(vals)
 
-            wks.append_row(vals)
-        sys.stdout.flush()
+    body = {'requests': [
+        {
+            'pasteData': { 
+                    'coordinate': {
+                        'sheetId': sheetid,
+                        'rowIndex': 0,
+                        'columnIndex': 0,
+                    },
+                    'data': csvdata.getvalue(),
+                    'type': 'PASTE_VALUES',
+                    'delimiter': ',',
+            }
+        }
+    ]}
+    rsp = sheetsClient.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
+    toc.append([name, description])
+
+def freeze_rows(spreadsheet_id, rows=1):
+    return
+    global sheetsClient
+    wkb = gc.open_by_key(spreadsheet_id)
+
+    body = {'requests': []}
+    for ws in wkb.worksheets():
+        body['requests'].append({
+            'updateSheetProperties': {
+                'properties': {
+                    'sheet_id': ws['properties']['sheetId'],
+                    'gridProperties': {
+                        'frozenRowCount': 1
+                    }
+                },
+                'fields': 'gridProperties.frozenRowCount'
+            }
+        })
+
+    rsp = sheetsClient.spreadsheets().batchUpdate(spreadsheetId=fileid, body=body).execute()
+
         
 def delete_worksheet(spreadsheet_id, sheet_index=0):
     gc = gspread.authorize(credentials)
     wkb = gc.open_by_key(spreadsheet_id)
+
+    if sheet_index == 'last':
+        sheet_index = len(wkb.worksheets()) - 1
     wkb.del_worksheet(wkb.get_worksheet(sheet_index))
-    
-#notes:
-
-#Getting started
-#https://developers.google.com/gdata/articles/python_client_lib#running-tests-and-samples
-
-#Create an empty spreadsheet and get the key
-#http://stackoverflow.com/questions/10527705/create-new-spreadsheet-google-api-python
-#or maybe http://stackoverflow.com/questions/12741303/create-a-empty-spreadsheet-in-google-drive-using-google-spreadsheet-api-python
-
-#Authentication using a service account
-#https://developers.google.com/identity/protocols/OAuth2ServiceAccount#authorizingrequests
-#http://stackoverflow.com/questions/16026286/using-oauth2-with-service-account-on-gdata-in-python
-#http://gclient-service-account-auth.readthedocs.org/en/latest/
