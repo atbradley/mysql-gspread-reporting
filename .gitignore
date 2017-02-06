@@ -2,3 +2,4 @@
 ocra-data.conf.yaml
 env/
 *.json
+runreports
