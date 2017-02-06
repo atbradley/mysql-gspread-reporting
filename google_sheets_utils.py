@@ -96,8 +96,6 @@ def data_to_worksheet(spreadsheet_id, name, description, headers, data):
     ]}
     rsp = sheetsClient.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=body).execute()
     sheetid = rsp['replies'][0]['addSheet']['properties']['sheetId']
-
-        
     csvdata = io.StringIO()
     cw = csv.writer(csvdata)
     cw.writerow(headers)
@@ -143,12 +141,10 @@ def freeze_rows(spreadsheet_id, rows=1):
         })
 
     rsp = sheetsClient.spreadsheets().batchUpdate(spreadsheetId=fileid, body=body).execute()
-
         
 def delete_worksheet(spreadsheet_id, sheet_index=0):
     gc = gspread.authorize(credentials)
     wkb = gc.open_by_key(spreadsheet_id)
-
     if sheet_index == 'last':
         sheet_index = len(wkb.worksheets()) - 1
     wkb.del_worksheet(wkb.get_worksheet(sheet_index))
