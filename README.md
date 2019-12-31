@@ -1,6 +1,6 @@
 # MySQL SQL Reports to Google Sheets
 
-This was written for Brown University's [Online Course Reserves Application](http://brown.edu/go/ocra), but should be generic enough for any MySQL-backed application (and should be easy enough to make more generic for other databases.
+This was written for Brown University's [Online Course Reserves Application](http://brown.edu/go/ocra), but should be generic enough for any MySQL-backed application (and should be easy enough to make more generic for other databases).
 
 ## Setup:
 
