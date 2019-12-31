@@ -16,7 +16,6 @@ workbook_id = create_spreadsheet(wbname, settings['folder'])
 
 
 dbs = settings['database']
-#db = _mysql.connect(host=dbs['host'], port=dbs['port'], user=dbs['user'], passwd=dbs['passwd'], db=dbs['db'])
 db = _mysql.connect(**dbs)
 
 qry = 'SELECT * FROM {} ORDER BY run_order'.format(settings['report_table_name'])
@@ -33,5 +32,3 @@ while report:
     headers = tuple([x[0] for x in res.describe()])
     data_to_worksheet(workbook_id, report['name'].decode(), report['description'].decode(), headers, report_results)
     report = r.fetch_row(how=1)
-    
-#delete_worksheet(workbook_id)

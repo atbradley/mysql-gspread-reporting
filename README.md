@@ -1,8 +1,8 @@
-#MySQL SQL Reports to Google Sheets
+# MySQL SQL Reports to Google Sheets
 
 This was written for Brown University's [Online Course Reserves Application](http://brown.edu/go/ocra), but should be generic enough for any MySQL-backed application (and should be easy enough to make more generic for other databases.
 
-##Setup:
+## Setup:
 
 1. [Create a Google service account key](http://gspread.readthedocs.org/en/latest/oauth2.html) and save the credentials in JSON format.
 2. Create a new folder in Google Drive and save it with the service account you just created.
@@ -21,6 +21,3 @@ This was written for Brown University's [Online Course Reserves Application](htt
 4. Add your reports to your `reports` table. `runorder` determines the order of reports in the output spreadsheet; `name` determines the name of the sheet and will appear, along with `description` on the first page of the file as a table of contents. The `query` is simply an SQL statement that returns the data you want to save to the spreadsheet.
 5. `pip install -r requirements.txt`
 5. `python ocra-reporting.py`.
-
-##Known Limitations/Bugs
- * It's slow--currently it sends data to Google one row at a time. An alternative would be to generate csv files and upload them as Google spreadsheets; I may try that in future.
