@@ -23,6 +23,7 @@ qry = 'SELECT * FROM {} ORDER BY run_order'.format(settings['report_table_name']
 
 db.query(qry)
 r = db.store_result()
+
 reports = r.fetch_row(maxrows=0, how=1)
 
 with gsheetsDataExporter(settings['apikeyfile'], settings['folder'], wbname) as gde:
