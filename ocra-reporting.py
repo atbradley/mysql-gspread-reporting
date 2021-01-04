@@ -1,3 +1,6 @@
+import csv
+import sys
+import re
 import os.path
 from datetime import date
 
@@ -29,3 +32,9 @@ with gsheetsDataExporter(settings['apikeyfile'], settings['folder'], wbname) as 
         report_results = res.fetch_row(maxrows=0)
         headers = tuple([x[0] for x in res.describe()])
         gde.data_to_worksheet(report['name'].decode(), report['description'].decode(), headers, report_results)
+
+        csvname = re.sub('[^\\w]', '_', report['name'].decode())
+        with open(csvname+'.csv','w', newline="") as fout:
+            writer = csv.writer(fout, delimiter = ',')
+            table = [headers] + list(report_results)
+            writer.writerows(table)

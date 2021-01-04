@@ -21,6 +21,3 @@ This was written for Brown University's [Online Course Reserves Application](htt
 4. Add your reports to your `reports` table. `runorder` determines the order of reports in the output spreadsheet; `name` determines the name of the sheet and will appear, along with `description` on the first page of the file as a table of contents. The `query` is simply an SQL statement that returns the data you want to save to the spreadsheet.
 5. `pip install -r requirements.txt`
 5. `python ocra-reporting.py`.
-
-## Known Limitations/Bugs
- * It's slow--currently it sends data to Google one row at a time. An alternative would be to generate csv files and upload them as Google spreadsheets; I may try that in future.
