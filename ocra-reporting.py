@@ -4,7 +4,7 @@ import re
 import os.path
 from datetime import date
 
-import _mysql
+from MySQLdb import _mysql
 import yaml
 
 from gsheetsExporter import gsheetsDataExporter
@@ -26,7 +26,7 @@ r = db.store_result()
 
 reports = r.fetch_row(maxrows=0, how=1)
 
-with gsheetsDataExporter(settings['apikeyfile'], settings['folder'], wbname) as gde:
+with gsheetsDataExporter(settings['apikeyfile'], settings['folder'], wbname, settings.get('latest_spreadsheet_id', False)) as gde:
     for report in reports:
         db.query(report['query'])
         res = db.store_result()

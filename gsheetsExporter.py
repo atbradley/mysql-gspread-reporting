@@ -11,7 +11,7 @@ import io
 import csv
 
 class gsheetsDataExporter:
-    def __init__(self, apikeyfile, folder, name):
+    def __init__(self, apikeyfile, folder, name, latest=False):
         self.toc = [['Sheet Name', 'Description']] 
         
         scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -46,6 +46,25 @@ class gsheetsDataExporter:
 
         self.wkb = self.sheetsClient.spreadsheets().get(spreadsheetId=self.wkbid).execute()
         self.toc_sheetid = self.wkb['sheets'][0]['properties']['sheetId']
+
+        if latest:
+            self.latest_id = latest
+            #open latest as self.gs_latest
+            self.gs_latest = self.gc.open_by_key(self.latest_id)
+            #delete all sheets except 'Index' in latest.
+            for sheet in self.gs_latest:
+                if 'Index' != sheet.title:
+                    body = {'requests': [
+                        {
+                            'deleteSheet': { 
+                                    'sheetId': sheet.id,
+                            }
+                        }
+                    ]}
+                    rsp = self.sheetsClient.spreadsheets().batchUpdate(spreadsheetId=self.latest_id, body=body).execute()
+                else:
+                    #Save self.latest_toc_sheetid
+                    self.latest_toc_sheetid = sheet.id
     
     def __enter__(self):
         return self
@@ -61,43 +80,50 @@ class gsheetsDataExporter:
         return csvdata.getvalue()
 
     def create_toc(self):
-        body = {'requests': [
-            {
-                'pasteData': { 
-                        'coordinate': {
-                            'sheetId': self.toc_sheetid,
-                            'rowIndex': 0,
-                            'columnIndex': 0,
-                        },
-                        'data': type(self)._list_to_csv(self.toc),
-                        'type': 'PASTE_VALUES',
-                        'delimiter': ',',
+        def makereq(sheetid, data):
+            return {'requests': [
+                {
+                    'pasteData': { 
+                            'coordinate': {
+                                'sheetId': sheetid,
+                                'rowIndex': 0,
+                                'columnIndex': 0,
+                            },
+                            'data': data,
+                            'type': 'PASTE_VALUES',
+                            'delimiter': ',',
+                    }
                 }
-            }
-        ]}
+            ]}
+        body = makereq(self.toc_sheetid, type(self)._list_to_csv(self.toc))
         rsp = self.sheetsClient.spreadsheets().batchUpdate(spreadsheetId=self.wkbid, body=body).execute()
-
+        
+        if self.latest_id:
+            body = makereq(self.latest_toc_sheetid, type(self)._list_to_csv(self.toc))
+            rsplatest = self.sheetsClient.spreadsheets().batchUpdate(spreadsheetId=self.latest_id, body=body).execute()
 
     def data_to_worksheet(self, name, description, headers, data):
         if not data:
             #Maybe write something to the spreadsheet indicating no data.
             return 0
         
-        #Create a new worksheet
-        body = {'requests': [
+        def makesheet(nm, cols):
+            return {'requests': [
             {
                 'addSheet': {
                     'properties': { 
-                        'title': name,
+                        'title': nm,
                         'gridProperties': {
                             'rowCount': 2,
-                            'columnCount': len(headers),
+                            'columnCount': cols,
                             'frozenRowCount': 1
                         },
                     },
                 }
             }
         ]}
+
+        body = makesheet(name, len(headers))
         rsp = self.sheetsClient.spreadsheets().batchUpdate(spreadsheetId=self.wkbid, body=body).execute()
         sheetid = rsp['replies'][0]['addSheet']['properties']['sheetId']
         
@@ -110,23 +136,34 @@ class gsheetsDataExporter:
             inpt.append([z.decode() if type(z)==bytes else '' if z==None else z for z in row])
         '''
         
-        body = {'requests': [
+        def insertdata(sid, data):
+            return {'requests': [
                     {
                         'pasteData': { 
                                 'coordinate': {
-                                    'sheetId': sheetid,
+                                    'sheetId': sid,
                                     'rowIndex': 0,
                                     'columnIndex': 0,
                                 },
-                                'data': type(self)._list_to_csv(data),
+                                'data': data,
                                 'type': 'PASTE_VALUES',
                                 'delimiter': ',',
                         }
                     }
                 ]}
+        
+        body = insertdata(sheetid, type(self)._list_to_csv(data))
         rsp = self.sheetsClient.spreadsheets().batchUpdate(spreadsheetId=self.wkbid, body=body).execute()
         self.toc.append([name, description])
 
+        if self.gs_latest:
+            body = makesheet(name, len(headers))
+            rsp = self.sheetsClient.spreadsheets().batchUpdate(spreadsheetId=self.latest_id, body=body).execute()
+            sheetid = rsp['replies'][0]['addSheet']['properties']['sheetId']
+
+            body =  insertdata(sheetid, type(self)._list_to_csv(data))
+            rsp = self.sheetsClient.spreadsheets().batchUpdate(spreadsheetId=self.latest_id, body=body).execute()
+            
     def delete_worksheet(self, sheet_index=0):
         if sheet_index == 'last':
             sheet_index = len(self.gs_wkb.worksheets()) - 1
