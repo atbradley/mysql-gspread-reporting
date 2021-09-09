@@ -15,6 +15,9 @@ class gsheetsDataExporter:
         self.toc = [['Sheet Name', 'Description']] 
         
         scopes = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        
+        #TODO: This shouldn't be needed any more--Google's library now uses an environment variable instead.
+        # https://cloud.google.com/docs/authentication/getting-started#command-line
         credentials = ServiceAccountCredentials.from_json_keyfile_name(
                                     apikeyfile, scopes=scopes)
         service = build('drive', 'v3')
