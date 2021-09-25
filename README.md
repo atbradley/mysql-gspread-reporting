@@ -6,7 +6,7 @@ This was written for Brown University's [Online Course Reserves Application](htt
 
 1. [Create a Google service account key](http://gspread.readthedocs.org/en/latest/oauth2.html) and save the credentials in JSON format.
 2. Create a new folder in Google Drive and save it with the service account you just created.
-2. Create a table like this in your database (you can replace the name `reports` with anything:  
+2. Create a table like this in your database (you can replace the name `reports` with anything):  
 
 	    CREATE TABLE `reports` (  
     		`run_order` INT(11) NOT NULL,  
